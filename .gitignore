@@ -16,3 +16,6 @@ doc/*
 *.un~
 *~
 *.rbc
+*.profile
+*.profile.pdf
+*.symbols

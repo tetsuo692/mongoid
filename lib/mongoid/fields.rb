@@ -11,6 +11,8 @@ require "mongoid/fields/serializable/date_time"
 require "mongoid/fields/serializable/float"
 require "mongoid/fields/serializable/hash"
 require "mongoid/fields/serializable/integer"
+require "mongoid/fields/serializable/bignum"
+require "mongoid/fields/serializable/fixnum"
 require "mongoid/fields/serializable/object"
 require "mongoid/fields/serializable/object_id"
 require "mongoid/fields/serializable/range"
@@ -86,10 +88,12 @@ module Mongoid #:nodoc
       #
       # @return [ Hash ] The field defaults.
       def defaults
-        fields.inject({}) do |defs, (field_name,field)|
-          next(defs) if field.default.nil?
-          defs[field_name.to_s] = field.default
-          defs
+        @defaults ||= {}.tap do |defs|
+          fields.each_pair do |field_name, field|
+            unless (default = field.default).nil?
+              defs[field_name.to_s] = default
+            end
+          end
         end
       end
 
@@ -149,6 +153,7 @@ module Mongoid #:nodoc
       def inherited(subclass)
         super
         subclass.fields = fields.dup
+        subclass.using_object_ids = using_object_ids
       end
 
       # Replace a field with a new type.
@@ -176,13 +181,14 @@ module Mongoid #:nodoc
       # @param [ Symbol ] name The name of the field.
       # @param [ Hash ] options The hash of options.
       def add_field(name, options = {})
+        @defaults = nil if @defaults
+
         meth = options.delete(:as) || name
         Mappings.for(
           options[:type], options[:identity]
         ).new(name, options).tap do |field|
           fields[name] = field
           create_accessors(name, meth, options)
-          add_dirty_methods(name)
           process_options(field)
         end
       end
@@ -203,7 +209,7 @@ module Mongoid #:nodoc
       def process_options(field)
         field_options = field.options
 
-        Fields.options.each do |option_name, handler|
+        Fields.options.each_pair do |option_name, handler|
           if field_options.has_key?(option_name)
             handler.call(self, field, field_options[option_name])
           end
@@ -230,7 +236,11 @@ module Mongoid #:nodoc
             end
           else
             define_method(meth) do
-              read_attribute(name)
+              value = read_attribute(name)
+              if value.is_a?(Array) || value.is_a?(Hash)
+                changed_attributes[name] = value.clone
+              end
+              value
             end
           end
           define_method("#{meth}=") do |value|

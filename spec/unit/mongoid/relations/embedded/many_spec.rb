@@ -177,6 +177,31 @@ describe Mongoid::Relations::Embedded::Many do
     end
   end
 
+  describe "#blank?" do
+
+    let(:relation) do
+      described_class.new(base, target, metadata)
+    end
+
+    context "when the relation contains elements" do
+
+      it "returns false" do
+        relation.should_not be_blank
+      end
+    end
+
+    context "when the relation contains no elements" do
+
+      before do
+        relation.target = []
+      end
+
+      it "returns true" do
+        relation.should be_blank
+      end
+    end
+  end
+
   describe ".builder" do
 
     let(:relation) do
@@ -717,6 +742,24 @@ describe Mongoid::Relations::Embedded::Many do
         document.expects(:delete).never
         relation.unbind([ document ])
       end
+    end
+  end
+
+  describe ".valid_options" do
+
+    it "returns the valid options" do
+      described_class.valid_options.should ==
+        [ :as, :cyclic, :order, :versioned ]
+    end
+  end
+
+  describe "respond_to?" do
+    let(:relation) do
+      described_class.new(base, target, metadata)
+    end
+
+    it "supports 'include_private = boolean'" do
+      expect { relation.respond_to?(:Rational, true) }.not_to raise_error
     end
   end
 end
