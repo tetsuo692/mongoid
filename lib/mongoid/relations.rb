@@ -11,6 +11,7 @@ require "mongoid/relations/many"
 require "mongoid/relations/one"
 require "mongoid/relations/options"
 require "mongoid/relations/polymorphic"
+require "mongoid/relations/targets/enumerable"
 require "mongoid/relations/embedded/atomic"
 require "mongoid/relations/embedded/in"
 require "mongoid/relations/embedded/many"
@@ -21,6 +22,7 @@ require "mongoid/relations/referenced/many"
 require "mongoid/relations/referenced/many_to_many"
 require "mongoid/relations/referenced/one"
 require "mongoid/relations/reflections"
+require "mongoid/relations/synchronization"
 require "mongoid/relations/metadata"
 require "mongoid/relations/macros"
 
@@ -39,6 +41,7 @@ module Mongoid # :nodoc:
     include Macros
     include Polymorphic
     include Reflections
+    include Synchronization
 
     included do
       attr_accessor :metadata
@@ -66,7 +69,7 @@ module Mongoid # :nodoc:
     #
     # @since 2.0.0.rc.1
     def embedded_many?
-      @embedded_many ||= (metadata && metadata.macro == :embeds_many)
+      metadata && metadata.macro == :embeds_many
     end
 
     # Determine if the document is part of an embeds_one relation.
@@ -78,7 +81,7 @@ module Mongoid # :nodoc:
     #
     # @since 2.0.0.rc.1
     def embedded_one?
-      @embedded_one ||= (metadata && metadata.macro == :embeds_one)
+      metadata && metadata.macro == :embeds_one
     end
 
     # Determine if the document is part of an references_many relation.
@@ -90,7 +93,7 @@ module Mongoid # :nodoc:
     #
     # @since 2.0.0.rc.1
     def referenced_many?
-      @referenced_many ||= (metadata && metadata.macro == :references_many)
+      metadata && metadata.macro == :references_many
     end
 
     # Determine if the document is part of an references_one relation.
@@ -102,7 +105,24 @@ module Mongoid # :nodoc:
     #
     # @since 2.0.0.rc.1
     def referenced_one?
-      @referenced_one ||= (metadata && metadata.macro == :references_one)
+      metadata && metadata.macro == :references_one
+    end
+
+    # Convenience method for iterating through the loaded relations and
+    # reloading them.
+    #
+    # @example Reload the relations.
+    #   document.reload_relations
+    #
+    # @return [ Hash ] The relations metadata.
+    #
+    # @since 2.1.6
+    def reload_relations
+      relations.each_pair do |name, meta|
+        if instance_variable_defined?("@#{name}")
+          remove_instance_variable("@#{name}")
+        end
+      end
     end
   end
 end

@@ -25,8 +25,8 @@ describe Mongoid::Persistence::Atomic::Pull do
       before do
         person.new_record = false
         collection.expects(:update).with(
-          person._selector,
-          { "$pull" => { :aliases => "008" } },
+          person.atomic_selector,
+          { "$pull" => { "aliases" => "008" } },
           { :safe => false }
         )
       end

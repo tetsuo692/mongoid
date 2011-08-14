@@ -50,8 +50,8 @@ describe Mongoid::Persistence::Atomic::Bit do
         before do
           person.new_record = false
           collection.expects(:update).with(
-            person._selector,
-            { "$bit" => { :age => { :and => 13 } } },
+            person.atomic_selector,
+            { "$bit" => { "age" => { :and => 13 } } },
             :safe => false
           )
         end
@@ -86,8 +86,8 @@ describe Mongoid::Persistence::Atomic::Bit do
         before do
           person.new_record = false
           collection.expects(:update).with(
-            person._selector,
-            { "$bit" => { :age => { :or => 13 } } },
+            person.atomic_selector,
+            { "$bit" => { "age" => { :or => 13 } } },
             :safe => false
           )
         end
@@ -129,8 +129,8 @@ describe Mongoid::Persistence::Atomic::Bit do
         before do
           person.new_record = false
           collection.expects(:update).with(
-            person._selector,
-            { "$bit" => { :age => { :and => 13, :or => 10 } } },
+            person.atomic_selector,
+            { "$bit" => { "age" => { :and => 13, :or => 10 } } },
             :safe => false
           )
         end

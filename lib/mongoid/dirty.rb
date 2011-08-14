@@ -21,7 +21,9 @@ module Mongoid #:nodoc:
       {}.tap do |hash|
         changed.each do |name|
           change = attribute_change(name)
-          hash[name] = change if change[0] != change[1]
+          if change
+            hash[name] = change if change[0] != change[1]
+          end
         end
       end
     end
@@ -67,10 +69,42 @@ module Mongoid #:nodoc:
     def setters
       {}.tap do |modifications|
         changes.each_pair do |field, changes|
-          key = embedded? ? "#{_position}.#{field}" : field
+          key = embedded? ? "#{atomic_position}.#{field}" : field
           modifications[key] = changes[1]
         end
       end
+    end
+
+    private
+
+    # Get the current value for the specified attribute, if the attribute has changed.
+    #
+    # @note This is overriding the AM::Dirty implementation to read from the mongoid
+    #   attributes hash, which may contain a serialized version of the attributes data. It is
+    #   necessary to read the serialized version as the changed value, to allow updates to
+    #   the MongoDB document to persist correctly. For example, if a DateTime field is updated
+    #   it must be persisted as a UTC Time.
+    #
+    # @return [ Object ] The current value of the field, or nil if no change made.
+    #
+    # @since 2.1.0
+    def attribute_change(attr)
+      [changed_attributes[attr], attributes[attr]] if attribute_changed?(attr)
+    end
+
+    # Determine if a specific attribute has changed.
+    #
+    # @note Overriding AM::Dirty once again since their implementation is not
+    #   friendly to fields that can be changed in place.
+    #
+    # @param [ String ] attr The name of the attribute.
+    #
+    # @return [ true, false ] Whether the attribute has changed.
+    #
+    # @since 2.1.6
+    def attribute_changed?(attr)
+      return false unless changed_attributes.include?(attr)
+      changed_attributes[attr] != attributes[attr]
     end
   end
 end
